@@ -36,7 +36,7 @@
 #include <stdio.h>
 
 const int maxThreadsPerBlock = 256; //to be on safe side.
-int threadsPerBlock = 0;
+
 
 __global__
 void rgba_to_greyscale(const uchar4* const rgbaImage,
@@ -57,8 +57,9 @@ void rgba_to_greyscale(const uchar4* const rgbaImage,
   //calculate a 1D offset
   int threadBlock = blockIdx.x;
   int thread = threadIdx.x;
+  int threadCount = blockDim.x;
   
-  int i = thread + threadBlock * threadsPerBlock;
+  int i = thread + threadBlock * threadCount;
   
   greyImage[i] = .299f*rgbaImage[i].x + .587f*rgbaImage[i].y + .114f*rgbaImage[i].z;
   
@@ -78,8 +79,8 @@ void your_rgba_to_greyscale(const uchar4 * const h_rgbaImage, uchar4 * const d_r
   //You must fill in the correct sizes for the blockSize and gridSize
   //currently only one block with one thread is being launched
   
-  threadsPerBlock = gcd(numRows*numCols, maxThreadsPerBlock);
-  int blockCount = numRows*numCols / threadsPerBlock
+  int threadsPerBlock = gcd(numRows*numCols, maxThreadsPerBlock);
+  int blockCount = numRows*numCols / threadsPerBlock;
   
   const dim3 blockSize(threadsPerBlock,1,1);
   const dim3 gridSize(blockCount,1,1);
