@@ -61,11 +61,15 @@ void rgba_to_greyscale(const uchar4* const rgbaImage,
   
   int i = thread + threadBlock * threadCount;
   
-  greyImage[i] = .299f*rgbaImage[i].x + .587f*rgbaImage[i].y + .114f*rgbaImage[i].z;
+  uchar4 pixel = rgbaImage[i];
+  
+  float bwPixel = .299f * pixel.x + .587f * pixel.y + .114f * pixel.z;
+  
+  greyImage[i] = bwPixel;
   
 }
 
-int gcd (int a, int b) {
+size_t gcd (size_t a, size_t b) {
     if (a == 0) {
         return b;
     }
@@ -79,11 +83,13 @@ void your_rgba_to_greyscale(const uchar4 * const h_rgbaImage, uchar4 * const d_r
   //You must fill in the correct sizes for the blockSize and gridSize
   //currently only one block with one thread is being launched
   
-  int threadsPerBlock = gcd(numRows*numCols, maxThreadsPerBlock);
-  int blockCount = numRows*numCols / threadsPerBlock;
+  size_t totalThreadCount = numRows*numCols;
   
-  const dim3 blockSize(threadsPerBlock,1,1);
+  size_t threadsPerBlock = gcd(totalThreadCount, maxThreadsPerBlock);
+  size_t blockCount = totalThreadCount / threadsPerBlock;
+  
   const dim3 gridSize(blockCount,1,1);
+  const dim3 blockSize(threadsPerBlock,1,1);
   
   rgba_to_greyscale<<<gridSize, blockSize>>>(d_rgbaImage, d_greyImage, numRows, numCols);
   
