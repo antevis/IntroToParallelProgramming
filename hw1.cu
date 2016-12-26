@@ -37,6 +37,14 @@
 
 const int maxThreadsPerBlock = 256; //to be on safe side.
 
+size_t gcd (size_t a, size_t b) {
+    if (a == 0) {
+        return b;
+    }
+    
+    return gcd(b%a, a);
+}
+
 
 __global__
 void rgba_to_greyscale(const uchar4* const rgbaImage,
@@ -58,11 +66,12 @@ void rgba_to_greyscale(const uchar4* const rgbaImage,
   
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   
-  uchar4 pixel = rgbaImage[i];
+  if (i < numCols*numRows) {
   
-  float bwPixel = .299f * pixel.x + .587f * pixel.y + .114f * pixel.z;
-  
-  greyImage[i] = bwPixel;
+    uchar4 pixel = rgbaImage[i];
+    float bwPixel = .299f * pixel.x + .587f * pixel.y + .114f * pixel.z;
+    greyImage[i] = bwPixel;
+  }
   
 }
 
@@ -72,8 +81,11 @@ void your_rgba_to_greyscale(const uchar4 * const h_rgbaImage, uchar4 * const d_r
   //You must fill in the correct sizes for the blockSize and gridSize
   //currently only one block with one thread is being launched
   
-  const dim3 gridSize(numRows,1,1);
-  const dim3 blockSize(numCols,1,1);
+  size_t pixelCount = numRows*numCols;
+  size_t blockCount = pixelCount/maxThreadsPerBlock+1;
+  
+  const dim3 gridSize(blockCount,1,1);
+  const dim3 blockSize(maxThreadsPerBlock,1,1);
   
   rgba_to_greyscale<<<gridSize, blockSize>>>(d_rgbaImage, d_greyImage, numRows, numCols);
   cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
