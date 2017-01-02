@@ -135,7 +135,7 @@ void gaussian_blur(const unsigned char* const inputChannel,
       int image_r = min(max(threadPos2d.y + filter_r, 0), (numRows - 1));
       int image_c = min(max(threadPos2d.x + filter_c, 0), (numCols - 1));
 
-      float image_value = inputChannel[image_r * numCols + image_col];
+      float image_value = inputChannel[image_r * numCols + image_c];
       float filter_value = filter[(filter_r + filterWidth/2) * filterWidth + filter_c + filterWidth/2];
 
       result += image_value * filter_value;
