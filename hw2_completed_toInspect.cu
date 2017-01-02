@@ -7,27 +7,27 @@ unsigned char* const outputChannel,
 int numRows, int numCols,
 const float* const filter, const int filterWidth)
 {
-int col = blockIdx.x * blockDim.x + threadIdx.x;
-int row = blockIdx.y * blockDim.y + threadIdx.y;
+  int col = blockIdx.x * blockDim.x + threadIdx.x;
+  int row = blockIdx.y * blockDim.y + threadIdx.y;
 
-if ( col >= numCols || row >= numRows )
-{
-return;
-}
+  if ( col >= numCols || row >= numRows )
+  {
+    return;
+  }
 
-float weightedPixel = 0.0f;
-for (int filter_col = -filterWidth/2; filter_col <= filterWidth/2; ++filter_col) 
-{
-for (int filter_row = -filterWidth/2; filter_row <= filterWidth/2; ++filter_row) 
-{
-int image_row = min(max(row + filter_row, 0), numRows - 1);
-int image_col = min(max(col + filter_col, 0), numCols - 1);
-float image_value = inputChannel[image_row * numCols + image_col];
-float filter_value = filter[(filter_row + filterWidth/2) * filterWidth + (filter_col + filterWidth/2)];
-weightedPixel += image_value * filter_value;
-}
-}
-outputChannel[row * numCols + col] = weightedPixel;
+  float weightedPixel = 0.0f;
+  for (int filter_col = -filterWidth/2; filter_col <= filterWidth/2; ++filter_col) 
+  {
+    for (int filter_row = -filterWidth/2; filter_row <= filterWidth/2; ++filter_row) 
+    {
+      int image_row = min(max(row + filter_row, 0), numRows - 1);
+      int image_col = min(max(col + filter_col, 0), numCols - 1);
+      float image_value = inputChannel[image_row * numCols + image_col];
+      float filter_value = filter[(filter_row + filterWidth/2) * filterWidth + (filter_col + filterWidth/2)];
+      weightedPixel += image_value * filter_value;
+    }
+  }
+  outputChannel[row * numCols + col] = weightedPixel;
 }
 
 global
