@@ -123,6 +123,13 @@ void gaussian_blur(const unsigned char* const inputChannel,
   // {
   //     return;
   // }
+  const int2 threadPos2d = make_int2( blockIdx.x * blockDim.x + threadIdx.x,
+                                        blockIdx.y * blockDim.y + threadIdx.y);
+  
+  //make sure we don't try and access memory outside the image
+  //by having any threads mapped there return early
+  if (threadPos2d.x >= numCols || threadPos2d.y >= numRows)
+    return;
   
   // NOTE: If a thread's absolute position 2D position is within the image, but some of
   // its neighbors are outside the image, then you will need to be extra careful. Instead
