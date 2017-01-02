@@ -154,6 +154,16 @@ void separateChannels(const uchar4* const inputImageRGBA,
   //     return;
   // }
   
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  
+  if (i < numCols*numRows) {
+  
+    uchar4 pixel = inputImageRGBA[i]; 
+    redChannel[i] = pixel.x;
+    greenChannel[i] = pixel.y;
+    blueChannel[i] = pixel.z;
+  }
+  
   
 }
 
