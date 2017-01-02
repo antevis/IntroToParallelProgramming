@@ -142,29 +142,20 @@ void separateChannels(const uchar4* const inputImageRGBA,
                       unsigned char* const greenChannel,
                       unsigned char* const blueChannel)
 {
-  // TODO
-  //
-  // NOTE: Be careful not to try to access memory that is outside the bounds of
-  // the image. You'll want code that performs the following check before accessing
-  // GPU memory:
-  //
-  // if ( absolute_image_position_x >= numCols ||
-  //      absolute_image_position_y >= numRows )
-  // {
-  //     return;
-  // }
+  const int2 threadPos2d = make_int2( blockIdx.x * blockDim.x + threadIdx.x,
+                                        blockIdx.y * blockDim.y + threadIdx.y);
   
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  //make sure we don't try and access memory outside the image
+  //by having any threads mapped there return early
+  if (threadPos2d.x >= numCols || threadPos2d.y >= numRows)
+    return;
   
-  if (i < numCols*numRows) {
+  //1-D position
+  const int i = threadPos2d.y * numCols + threadPos2d.x;
   
-    uchar4 pixel = inputImageRGBA[i]; 
-    redChannel[i] = pixel.x;
-    greenChannel[i] = pixel.y;
-    blueChannel[i] = pixel.z;
-  }
-  
-  
+  redChannel[i] = inputImageRGBA[i].x;
+  greenChannel[i] = inputImageRGBA[i].y;
+  blueChannel[i] = inputImageRGBA[i].z;
 }
 
 //This kernel takes in three color channels and recombines them
