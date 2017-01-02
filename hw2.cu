@@ -102,9 +102,9 @@
 
 #include "reference_calc.cpp"
 #include "utils.h"
-#include <math.h>
+#include <math.h> //for sqrt
 
-const int maxThreadsPerBlock = 256; //to be on safe side.
+const int maxThreadsPerBlock = 512; //to be on safe side. Though it could be queried
 
 __global__
 void gaussian_blur(const unsigned char* const inputChannel,
@@ -232,7 +232,6 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
                         const int filterWidth)
 {
   //TODO: Set reasonable block size (i.e., number of threads per block)
-  
   float ratio = float(numCols)/float(numRows);
   int blockDimY = int(sqrt(float(maxThreadsPerBlock)/ratio) + 1);
   int blockDimX = int(blockDimY*ratio + 1);
@@ -241,7 +240,7 @@ void your_gaussian_blur(const uchar4 * const h_inputImageRGBA, uchar4 * const d_
   //TODO:
   //Compute correct grid size (i.e., number of blocks per kernel launch)
   //from the image size and and block size.
-  const dim3 gridSize(numCols/blockDimX + 1,numRows/blockDimY + 1, 1);
+  const dim3 gridSize(numCols/blockSize.x + 1,numRows/blockSize.y + 1, 1);
 
   //TODO: Launch a kernel for separating the RGBA image into different color channels
   separateChannels<<<gridSize, blockSize>>>(d_inputImageRGBA,
