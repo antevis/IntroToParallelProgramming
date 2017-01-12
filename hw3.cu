@@ -67,12 +67,12 @@
 #include "utils.h"
 
 __global__
-void histogram_kernel(unsigned int* d_bins, const float* d_in, const int bin_count, const float lum_min, const float lum_max, const int size) {  
-    int mid = threadIdx.x + blockDim.x * blockIdx.x;
-    if(mid >= size)
+void hist_kernel(unsigned int* d_bins, const float* d_in, const int binCount, const float minLum, const float maxLum, const size_t numRows, const size_t numCols) {  
+    int pixelId = threadIdx.x + blockDim.x * blockIdx.x;
+    if(pixelId >= numCols*numRows)
         return;
-    float lum_range = lum_max - lum_min;
-    int bin = ((d_in[mid]-lum_min) / lum_range) * bin_count;
+    float lumRange = maxLum - minLum;
+    int bin = ((d_in[pixelId] - minLum) / lumRange) * binCount;
     
     atomicAdd(&d_bins[bin], 1);
 }
@@ -147,15 +147,16 @@ void reduce_minmax_kernel(const float* const d_in, float* d_out, const size_t si
     }
 }
 
-int get_max_size(int n, int d) {
-    return (int)ceil( (float)n/(float)d ) + 1;
+int getMaxSize(int a, int b) {
+    return (int)ceil((float)a/(float)b) + 1;
 }
 
-float reduce_minmax(const float* const d_in, const size_t size, int minmax) {
+float reduceMinmax(const float* const d_in, const size_t numRows, const size_t numCols, int minmax) {
     int BLOCK_SIZE = 32;
     // we need to keep reducing until we get to the amount that we consider 
     // having the entire thing fit into one block size
-    size_t curr_size = size;
+    size_t size = numRows*numCols;
+    size_t currSize = size;
     float* d_curr_in;
     
     checkCudaErrors(cudaMalloc(&d_curr_in, sizeof(float) * size));    
@@ -167,10 +168,10 @@ float reduce_minmax(const float* const d_in, const size_t size, int minmax) {
     dim3 thread_dim(BLOCK_SIZE);
     const int shared_mem_size = sizeof(float)*BLOCK_SIZE;
     
-    while(1) {
-        checkCudaErrors(cudaMalloc(&d_curr_out, sizeof(float) * get_max_size(curr_size, BLOCK_SIZE)));
+    while(True) {
+        checkCudaErrors(cudaMalloc(&d_curr_out, sizeof(float) * getMaxSize(curr_size, BLOCK_SIZE)));
         
-        dim3 block_dim(get_max_size(size, BLOCK_SIZE));
+        dim3 block_dim(getMaxSize(size, BLOCK_SIZE));
         reduce_minmax_kernel<<<block_dim, thread_dim, shared_mem_size>>>(
             d_curr_in,
             d_curr_out,
@@ -187,7 +188,7 @@ float reduce_minmax(const float* const d_in, const size_t size, int minmax) {
         if(curr_size <  BLOCK_SIZE) 
             break;
         
-        curr_size = get_max_size(curr_size, BLOCK_SIZE);
+        curr_size = getMaxSize(curr_size, BLOCK_SIZE);
     }
     
     // theoretically we should be 
@@ -206,8 +207,8 @@ void your_histogram_and_prefixsum(const float* const d_logLuminance,
                                   const size_t numBins)
 {
     const size_t size = numRows*numCols;
-    min_logLum = reduce_minmax(d_logLuminance, size, 0);
-    max_logLum = reduce_minmax(d_logLuminance, size, 1);
+    min_logLum = reduceMinmax(d_logLuminance, numRows, numCols, 0);
+    max_logLum = reduceMinmax(d_logLuminance, numRows, numCols, 1);
     
     printf("got min of %f\n", min_logLum);
     printf("got max of %f\n", max_logLum);
@@ -220,7 +221,7 @@ void your_histogram_and_prefixsum(const float* const d_logLuminance,
     checkCudaErrors(cudaMemset(d_bins, 0, histo_size));  
     dim3 thread_dim(1024);
     dim3 hist_block_dim(get_max_size(size, thread_dim.x));
-    histogram_kernel<<<hist_block_dim, thread_dim>>>(d_bins, d_logLuminance, numBins, min_logLum, max_logLum, size);
+    hist_kernel<<<hist_block_dim, thread_dim>>>(d_bins, d_logLuminance, numBins, min_logLum, max_logLum, numRows, numCols);
     cudaDeviceSynchronize(); checkCudaErrors(cudaGetLastError());
 
     unsigned int h_out[100];
